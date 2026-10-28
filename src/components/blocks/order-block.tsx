@@ -18,7 +18,7 @@ function Row({ item, pos, total, state, onMove }: { item: Item; pos: number; tot
       value={item}
       dragListener={false}
       dragControls={controls}
-      className={`flex min-h-12 items-center gap-2 rounded-[10px] border bg-card py-1.5 pl-2 pr-1.5 ${state === "ok" ? "border-ok bg-ok/10" : state === "bad" ? "border-bad bg-bad/10" : "border-line"}`}
+      className={`flex min-h-12 items-center gap-2 rounded-[12px] border bg-paper py-1.5 pl-2 pr-1.5 ${state === "ok" ? "border-ok bg-ok/10" : state === "bad" ? "border-bad bg-bad/10" : "border-transparent"}`}
       whileDrag={{ scale: 1.02, boxShadow: "0 10px 30px -10px rgba(0,0,0,.35)", zIndex: 5 }}
       layout="position"
     >

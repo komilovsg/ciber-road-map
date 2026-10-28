@@ -5,6 +5,8 @@ import type { Block } from "@/content/types";
 import { BlockFrame, DrawCheck } from "@/components/ui/frames";
 import { IconArrowDown, IconArrowUp, IconBulb, IconReset, IconSend, IconTrophy } from "@/icons";
 import { useBlockProgress } from "@/components/blocks/block-context";
+import { useT } from "@/i18n/context";
+import { VscPanel, VscWindow } from "@/components/vscode/chrome";
 import { Shell, lineText, type Line, type Seg, type SegClass } from "@/components/blocks/terminal/shell";
 
 type TerminalBlockData = Extract<Block, { kind: "terminal" }>;
@@ -15,25 +17,27 @@ interface Entry {
   lines: Line[];
 }
 
+/** VS Code integrated terminal ANSI palette (Dark Modern): user@host green, path blue. */
 const SEG_COLOR: Record<SegClass, string> = {
-  dir: "#7fa6ff",
-  exe: "#5fd38d",
-  err: "#ff8080",
-  dim: "#8d97a8",
-  hl: "#ff6b6b",
-  file: "#d58cff",
-  ok: "#5fd38d",
-  sep: "#5fd1d1",
+  dir: "#3B8EEA",
+  exe: "#23D18B",
+  err: "#F14C4C",
+  dim: "#9D9D9D",
+  hl: "#F14C4C",
+  file: "#D670D6",
+  ok: "#23D18B",
+  sep: "#29B8DB",
 };
+const PROMPT_DIM = "#E5E5E5";
 const BOLD: SegClass[] = ["dir", "exe", "hl", "ok"];
 const MAX_ENTRIES = 300;
 
-function Segs({ segs }: { segs: Seg[] }) {
+function Segs({ segs, prompt }: { segs: Seg[]; prompt?: boolean }) {
   return (
     <>
       {segs.map((s, i) =>
         s.c ? (
-          <span key={i} style={{ color: SEG_COLOR[s.c], fontWeight: BOLD.includes(s.c) ? 600 : undefined }}>
+          <span key={i} style={{ color: prompt && s.c === "dim" ? PROMPT_DIM : SEG_COLOR[s.c], fontWeight: BOLD.includes(s.c) ? 600 : undefined }}>
             {s.t}
           </span>
         ) : (
@@ -90,6 +94,8 @@ export function TerminalBlock({ block }: { block: TerminalBlockData }) {
   const [input, setInput] = useState("");
   const [localDone, setLocalDone] = useState<number[]>([]);
   const [hints, setHints] = useState<number[]>([]);
+  const [collapsed, setCollapsed] = useState(false);
+  const tr = useT();
   const [, bump] = useState(0);
   const paneRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -231,15 +237,23 @@ export function TerminalBlock({ block }: { block: TerminalBlockData }) {
       )}
       <div className="grid gap-4 min-[900px]:grid-cols-[minmax(0,1fr)_270px]">
         <div className="min-w-0">
-          <div
-            ref={paneRef}
-            role="log"
-            aria-live="polite"
-            aria-label="Вывод терминала"
-            onClick={() => {
-              if (!window.getSelection()?.toString()) focusInput();
+          <VscWindow>
+          <VscPanel
+            tabs={[{ id: "terminal", label: tr.vsc.terminal }]}
+            active="terminal"
+            onTab={() => {}}
+            collapsed={collapsed}
+            onToggle={() => setCollapsed((c) => !c)}
+            toggleLabel={collapsed ? tr.vsc.expand : tr.vsc.collapse}
+            className="vsc-xterm"
+            bodyRef={paneRef}
+            bodyProps={{
+              "aria-live": "polite",
+              "aria-label": "Вывод терминала",
+              onClick: () => {
+                if (!window.getSelection()?.toString()) focusInput();
+              },
             }}
-            className="max-h-[min(340px,55vh)] min-h-[200px] cursor-text overflow-auto rounded-[12px] bg-code p-3 font-mono text-[14px] leading-[1.55] text-[var(--code-ink)] focus-within:ring-2 focus-within:ring-accent/60 [@media(pointer:coarse)]:text-[16px]"
           >
             {entries.length === 0 && (
               <div className="mb-1 text-[13px]" style={{ color: SEG_COLOR.dim }}>
@@ -249,7 +263,7 @@ export function TerminalBlock({ block }: { block: TerminalBlockData }) {
             {entries.map((e, i) => (
               <div key={i}>
                 <div className="whitespace-pre-wrap break-all">
-                  <Segs segs={e.prompt} />
+                  <Segs segs={e.prompt} prompt />
                   {e.cmd}
                 </div>
                 {e.lines.map((l, j) => (
@@ -261,7 +275,7 @@ export function TerminalBlock({ block }: { block: TerminalBlockData }) {
             ))}
             <div className="flex items-baseline">
               <span className="shrink-0 whitespace-pre">
-                <Segs segs={shell.prompt()} />
+                <Segs segs={shell.prompt()} prompt />
               </span>
               <input
                 ref={inputRef}
@@ -281,11 +295,12 @@ export function TerminalBlock({ block }: { block: TerminalBlockData }) {
                 spellCheck={false}
                 inputMode="text"
                 enterKeyHint="send"
-                className="min-w-0 flex-1 border-0 bg-transparent p-0 font-mono text-[14px] text-[var(--code-ink)] caret-[var(--code-ink)] outline-none [@media(pointer:coarse)]:text-[16px]"
+                className="min-w-0 flex-1 border-0 bg-transparent p-0 font-mono text-[14px] text-[#cccccc] caret-[#aeafad] outline-none [@media(pointer:coarse)]:text-[16px]"
                 style={{ minHeight: 22 }}
               />
             </div>
-          </div>
+          </VscPanel>
+          </VscWindow>
           <div className="mt-2 hidden flex-wrap gap-2 [@media(pointer:coarse)]:flex">
             <QuickKey aria="Дополнить по Tab" onPress={tab} after={focusInput}>Tab</QuickKey>
             <QuickKey aria="Предыдущая команда" onPress={() => historyMove(-1)} after={focusInput}><IconArrowUp size={18} /></QuickKey>

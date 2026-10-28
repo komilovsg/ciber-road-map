@@ -9,7 +9,7 @@ import { fmt } from "@/i18n";
 import { StationShape } from "@/icons";
 
 const W = 1120;
-const ROW_H = 132;
+const ROW_H = 168;
 const Y0 = 84;
 const X0 = 120;
 const DX = 176;
@@ -52,9 +52,9 @@ export function MetroMap({ weeks }: { weeks: WeekMeta[] }) {
   const href = (l: LessonMeta) => `/${locale}/learn/${l.slug}`;
 
   return (
-    <section id="map" className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 md:py-14" aria-labelledby="map-title">
-      <h2 id="map-title" className="font-display text-[clamp(28px,4vw,40px)] font-bold tracking-[-0.025em]">{t.map.title}</h2>
-      <p className="mt-2 max-w-[60ch] text-muted">{t.map.lead}</p>
+    <section id="map" className="mx-auto max-w-[1120px] px-4 py-12 sm:px-6 md:py-16" aria-labelledby="map-title">
+      <h2 id="map-title" className="font-display text-[24px] font-semibold tracking-[-0.015em]">{t.map.title}</h2>
+      <p className="mt-2 max-w-[60ch] text-[14px] text-muted">{t.map.lead}</p>
       <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted" aria-hidden>
         {(["lesson", "project", "ctf", "test"] as const).map((k) => (
           <li key={k} className="flex items-center gap-1.5">
@@ -64,7 +64,7 @@ export function MetroMap({ weeks }: { weeks: WeekMeta[] }) {
       </ul>
 
       {/* Desktop: snake */}
-      <div className="card mt-6 hidden overflow-hidden p-2 md:block">
+      <div className="mt-6 hidden md:block">
         <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="group" aria-label={t.map.ariaMap}>
           {rows.map(({ w, rtl, slots, y }, r) => {
             const prev = rows[r - 1];
@@ -98,12 +98,10 @@ export function MetroMap({ weeks }: { weeks: WeekMeta[] }) {
                     transition={{ duration: 0.4 }}
                   />
                 ))}
-                {/* row label */}
-                <text x={slots[0].x + (rtl ? -26 : 26)} y={y - 66} textAnchor={rtl ? "end" : "start"} className="fill-current" style={{ fontFamily: "var(--font-jb)", fontSize: 12, letterSpacing: "0.08em", fill: "var(--muted)" }}>
-                  {fmt(t.map.weekOf, { n: w.week }).toUpperCase()}
-                </text>
-                <text x={slots[0].x + (rtl ? -26 : 26)} y={y - 48} textAnchor={rtl ? "end" : "start"} style={{ fontFamily: "var(--font-geologica)", fontSize: 17, fontWeight: 700, fill: w.color, letterSpacing: "-0.01em" }}>
-                  {w.module}
+                {/* row label: one line, clear of the station labels above */}
+                <text x={slots[0].x + (rtl ? -26 : 26)} y={y - 62} textAnchor={rtl ? "end" : "start"} style={{ fontFamily: "var(--font-onest)", fontSize: 15 }}>
+                  <tspan style={{ fill: "var(--muted)" }}>{fmt(t.map.weekOf, { n: w.week })} · </tspan>
+                  <tspan style={{ fill: w.color, fontWeight: 600 }}>{w.module}</tspan>
                 </text>
                 {/* stations */}
                 {slots.map((s, k) => {
@@ -114,18 +112,11 @@ export function MetroMap({ weeks }: { weeks: WeekMeta[] }) {
                   const label = l ? wrap(l.title) : [t.common.soon];
                   const body = (
                     <g>
-                      {interchange && <circle cx={s.x} cy={y} r={21} fill="var(--card)" stroke="var(--ink)" strokeWidth={3} />}
-                      {isNext && <circle className="pulse-ring" cx={s.x} cy={y} r={15} fill="none" stroke={w.color} strokeWidth={3} />}
-                      <motion.g
-                        initial={false}
-                        animate={{ scale: done ? [1, 1.35, 1] : 1 }}
-                        transition={{ type: "spring", stiffness: 420, damping: 14 }}
-                        style={{ transformBox: "fill-box", transformOrigin: "center" }}
-                      >
-                        <g transform={`translate(${s.x - 17} ${y - 17})`} opacity={l ? 1 : 0.4}>
-                          <StationShape type={l?.type ?? "lesson"} size={34} filled={done} color={w.color} />
-                        </g>
-                      </motion.g>
+                      {interchange && <circle cx={s.x} cy={y} r={21} fill="var(--paper)" stroke="var(--ink)" strokeWidth={3} />}
+                      {isNext && <circle className="pulse-ring" cx={s.x} cy={y} r={23} fill="none" stroke={w.color} strokeWidth={3} />}
+                      <g transform={`translate(${s.x - 17} ${y - 17})`} opacity={l ? 1 : 0.4}>
+                        <StationShape type={l?.type ?? "lesson"} size={34} filled={done} color={w.color} />
+                      </g>
                       <text x={s.x} y={y - 26} textAnchor="middle" style={{ fontFamily: "var(--font-jb)", fontSize: 10.5, fill: "var(--muted)" }}>
                         {l ? String(l.n).padStart(2, "0") : ""}
                       </text>
@@ -165,11 +156,11 @@ export function MetroMap({ weeks }: { weeks: WeekMeta[] }) {
               <div className="flex items-center gap-3 pb-1 pt-2">
                 <div className="relative z-10 grid h-11 w-11 shrink-0 place-items-center">
                   {r > 0 && <span aria-hidden className="absolute -top-4 left-1/2 h-4 w-[6px] -translate-x-1/2" style={{ background: `linear-gradient(${prevColor}, ${w.color})` }} />}
-                  <span className="grid h-8 w-8 place-items-center rounded-full border-[3px] border-ink bg-card font-mono text-[12px] font-bold">{w.week}</span>
+                  <span className="grid h-8 w-8 place-items-center rounded-full border-[3px] border-ink bg-paper text-[14px] font-semibold">{w.week}</span>
                 </div>
                 <div className="min-w-0">
-                  <p className="eyebrow">{fmt(t.map.weekOf, { n: w.week })}</p>
-                  <p className="font-display text-[17px] font-bold leading-tight" style={{ color: w.color }}>{w.module}</p>
+                  <p className="text-[14px] text-muted">{fmt(t.map.weekOf, { n: w.week })}</p>
+                  <p className="font-display text-[17px] font-semibold leading-tight" style={{ color: w.color }}>{w.module}</p>
                 </div>
               </div>
               <ol>
@@ -183,12 +174,12 @@ export function MetroMap({ weeks }: { weeks: WeekMeta[] }) {
                         <span aria-hidden className="absolute left-1/2 top-0 h-1/2 w-[6px] -translate-x-1/2" style={{ background: w.color, opacity: done ? 1 : 0.3 }} />
                         <span aria-hidden className="absolute bottom-0 left-1/2 top-1/2 w-[6px] -translate-x-1/2" style={{ background: w.color, opacity: k === PER - 1 ? 0 : nextDone ? 1 : 0.3 }} />
                         <span className="relative z-10 grid place-items-center self-center">
-                          {isNext && <span className="pulse-ring absolute h-7 w-7 rounded-full border-[3px]" style={{ borderColor: w.color }} aria-hidden />}
+                          {isNext && <span className="pulse-ring absolute h-8 w-8 rounded-full border-[3px]" style={{ borderColor: w.color }} aria-hidden />}
                           <StationShape type={l?.type ?? "lesson"} size={30} filled={done} color={w.color} />
                         </span>
                       </span>
                       <span className="min-w-0 flex-1 py-2.5 pr-2">
-                        <span className="font-mono text-[11px] text-muted">{l ? String(l.n).padStart(2, "0") : "··"}</span>
+                        <span className="text-[14px] tabular-nums text-muted">{l ? String(l.n).padStart(2, "0") : "··"}</span>
                         <span className={`block text-[16px] leading-snug ${isNext ? "font-semibold" : ""} ${l ? "" : "text-muted"}`}>{l ? l.title : t.common.soon}</span>
                       </span>
                     </>

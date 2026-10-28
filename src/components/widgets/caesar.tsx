@@ -59,7 +59,7 @@ function Ring({ lang, shift }: { lang: Lang; shift: number }) {
           </text>
         ))}
       </motion.g>
-      <path d={`M${C - 6} 2 L${C + 6} 2 L${C} 12 Z`} fill="var(--line-color)" />
+      <path d={`M${C - 6} 2 L${C + 6} 2 L${C} 12 Z`} fill="var(--accent)" />
       <text x={C} y={C} textAnchor="middle" dominantBaseline="middle" fontSize={22} fontWeight={700} fill="var(--ink)">
         +{shift}
       </text>

@@ -6,7 +6,6 @@ import { getDict, isLocale } from "@/i18n";
 import { SiteHeader } from "@/components/home/site-header";
 import { Hero } from "@/components/home/hero";
 import { MetroMap } from "@/components/home/metro-map";
-import { HowItWorks } from "@/components/home/how-it-works";
 import { ModuleCards } from "@/components/home/module-cards";
 import { SiteFooter } from "@/components/home/site-footer";
 import { PageEnter } from "@/components/shell/page-enter";
@@ -26,12 +25,11 @@ async function HomeContent({ params }: { params: PageProps<"/[locale]">["params"
   const weeks = getWeeks(locale).map(toWeekMeta);
   return (
     <>
-      <SiteHeader locale={locale} name={t.siteName} />
+      <SiteHeader locale={locale} name={t.siteName} total={weeks.reduce((n, w) => n + w.lessons.length, 0)} />
       <main id="main">
         <PageEnter>
           <Hero weeks={weeks} />
           <MetroMap weeks={weeks} />
-          <HowItWorks />
           <ModuleCards weeks={weeks} />
         </PageEnter>
       </main>

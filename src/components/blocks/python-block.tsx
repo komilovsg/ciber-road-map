@@ -5,11 +5,14 @@ import remarkGfm from "remark-gfm";
 import { AnimatePresence, motion } from "motion/react";
 import type { Block } from "@/content/types";
 import { BlockFrame, DrawCheck, shake } from "@/components/ui/frames";
-import { IconBulb, IconCheck, IconEye, IconPlay, IconRefresh, IconReset, IconWarn } from "@/icons";
+import { IconCheck, IconRefresh, IconBulb, IconWarn } from "@/icons";
+import { useT } from "@/i18n/context";
+import { RunIcon, TouchIndent, VscIconButton, VscMenu, VscPanel, VscProblem, VscStatusBar, VscTabBar, VscWindow } from "@/components/vscode/chrome";
 import { useBlockProgress } from "@/components/blocks/block-context";
-import { CodeEditor, EditorKeysHint } from "@/components/blocks/code-editor";
+import { CodeEditor, EditorKeysHint, type EditorApi } from "@/components/blocks/code-editor";
 import { runPython, type PyPhase } from "@/components/blocks/runtime/py-runtime";
 
+const PS = "PS C:\\Users\\student> ";
 type Props = { block: Extract<Block, { kind: "python" }> };
 type Seg = { stream: "out" | "err"; text: string };
 type Verdict =
@@ -36,20 +39,8 @@ function errHint(msg: string): string | null {
   return ERR_HINTS.find(([re]) => re.test(last))?.[1] ?? null;
 }
 
-function Shimmer() {
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-line" aria-hidden>
-      <motion.div
-        className="h-full w-1/3 rounded-full bg-accent"
-        animate={{ x: ["-100%", "300%"] }}
-        transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
-      />
-    </div>
-  );
-}
-
 export function PythonBlock({ block }: Props) {
-  const { solved, solve, data, setData } = useBlockProgress<{ code?: string }>();
+  const { solved, solve, data, setData } = useBlockProgress<{ code?: string; solutionSeen?: boolean }>();
   const [edited, setEdited] = useState<string | null>(null);
   const code = edited ?? data?.code ?? block.starter;
   const [busy, setBusy] = useState<null | "run" | "check">(null);
@@ -57,12 +48,18 @@ export function PythonBlock({ block }: Props) {
   const [segs, setSegs] = useState<Seg[]>([]);
   const [ran, setRan] = useState(false);
   const [verdict, setVerdict] = useState<Verdict>({ kind: "none" });
-  const [hints, setHints] = useState(0);
-  const [fails, setFails] = useState(0);
+  const [, setSeenLocal] = useState(false);
+  const seenRef = useRef(false);
+  const edRef = useRef<EditorApi | null>(null);
+  const [, setFails] = useState(0);
   const [confirm, setConfirm] = useState<null | "reset" | "solution">(null);
   const [showSol, setShowSol] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
   const [justSolved, setJustSolved] = useState(false);
+  const t = useT();
+  const [pos, setPos] = useState({ ln: 1, col: 1 });
+  const [ptab, setPtab] = useState("terminal");
+  const [collapsed, setCollapsed] = useState(false);
   const hintId = useId();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSave = useRef<string | null>(null);
@@ -78,7 +75,7 @@ export function PythonBlock({ block }: Props) {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = null;
     if (pendingSave.current !== null) {
-      setDataRef.current({ code: pendingSave.current });
+      setDataRef.current({ code: pendingSave.current, solutionSeen: seenRef.current || undefined });
       pendingSave.current = null;
     }
   }, []);
@@ -117,6 +114,8 @@ export function PythonBlock({ block }: Props) {
     if (busy) return;
     flushSave();
     setBusy(mode);
+    setCollapsed(false);
+    setPtab("terminal");
     setConfirm(null);
     setSegs([]);
     setRan(true);
@@ -154,12 +153,13 @@ export function PythonBlock({ block }: Props) {
     if (extra.length) setSegs((p) => [...p, ...extra]);
     setVerdict(v);
     setBusy(null);
+    if (mode === "check" && (v.kind === "fail" || v.kind === "timeout" || v.kind === "loaderror")) setPtab("problems");
     if (mode === "check") {
       if (v.kind === "pass") {
         setJustSolved(true);
         if (!solvedRef.current && !solved) {
           solvedRef.current = true;
-          solve();
+          solve(seenRef.current ? 5 : 10);
         }
       } else if (v.kind === "fail" || v.kind === "timeout") {
         setFails((n) => n + 1);
@@ -178,8 +178,50 @@ export function PythonBlock({ block }: Props) {
     setVerdict({ kind: "none" });
   };
   const wantReset = () => (code === block.starter ? doReset() : setConfirm("reset"));
-  const wantSolution = () => (fails >= 2 ? setShowSol(true) : setConfirm("solution"));
+  const wantSolution = () => (solved || showSol ? setShowSol(true) : setConfirm("solution"));
   const hintsArr = block.hints ?? [];
+  useEffect(() => {
+    if (data?.solutionSeen) seenRef.current = true;
+  }, [data?.solutionSeen]);
+  const revealSolution = () => {
+    if (!solved) {
+      seenRef.current = true;
+      setSeenLocal(true);
+      setDataRef.current({ code, solutionSeen: true });
+    }
+    setShowSol(true);
+    setConfirm(null);
+  };
+  const wrapHint = (i: number) => {
+    const lines: string[] = [];
+    let cur = "";
+    for (const w of `${t.vsc.hintWord} ${i + 1}/${hintsArr.length}: ${hintsArr[i]}`.split(/\s+/)) {
+      if (cur && cur.length + 1 + w.length > 72) {
+        lines.push(cur);
+        cur = w;
+      } else cur = cur ? cur + " " + w : w;
+    }
+    if (cur) lines.push(cur);
+    return lines.map((l) => "# " + l);
+  };
+  const shownHints = hintsArr.map((_, i) => code.includes(`${t.vsc.hintWord} ${i + 1}/${hintsArr.length}:`));
+  const nextHint = shownHints.indexOf(false);
+  const insertHint = () => {
+    if (nextHint < 0) return;
+    let skip = 0;
+    for (let i = 0; i < nextHint; i++) skip += wrapHint(i).length;
+    edRef.current?.insertHint(wrapHint(nextHint).join("\n") + "\n", skip);
+  };
+  const problems: { kind: "error" | "info"; text: string }[] =
+    verdict.kind === "fail"
+      ? [{ kind: "error", text: verdict.text }]
+      : verdict.kind === "timeout"
+        ? [{ kind: "error", text: "Похоже на бесконечный цикл (>8 с). Проверь условия выхода из while/for." }]
+        : verdict.kind === "loaderror"
+          ? [{ kind: "error", text: "Не удалось загрузить Python. Проверь интернет и попробуй ещё раз." }]
+          : verdict.kind === "info"
+            ? [{ kind: "info", text: verdict.text }]
+            : [];
 
   return (
     <BlockFrame label="Python" title={block.title} solved={solved}>
@@ -187,33 +229,80 @@ export function PythonBlock({ block }: Props) {
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{block.task}</ReactMarkdown>
       </div>
 
-      <CodeEditor
-        value={code}
-        onChange={onCode}
-        lang="python"
-        onRun={() => void exec("run")}
-        ariaLabel={`Редактор Python: ${block.title}`}
-        hintId={hintId}
-      />
+      <VscWindow>
+        <VscTabBar name="main.py" kind="python">
+          <VscIconButton label={t.vsc.runFile} run disabled={!!busy} onClick={() => void exec("run")}>
+            <RunIcon />
+          </VscIconButton>
+          {hintsArr.length > 0 && (
+            <VscIconButton label={nextHint < 0 ? t.vsc.allHints : `${t.vsc.hint} ${nextHint + 1}/${hintsArr.length}`} disabled={nextHint < 0} onClick={insertHint}>
+              <IconBulb size={17} />
+            </VscIconButton>
+          )}
+          <TouchIndent api={edRef} />
+          <VscMenu
+            label={t.vsc.more}
+            items={[
+              { label: t.vsc.resetCode, onSelect: wantReset, disabled: !!busy },
+              { label: t.vsc.showSolution, onSelect: wantSolution, disabled: showSol },
+            ]}
+          />
+        </VscTabBar>
+        <CodeEditor
+          value={code}
+          onChange={onCode}
+          onCursor={(ln, col) => setPos({ ln, col })}
+          lang="python"
+          onRun={() => void exec("run")}
+          ariaLabel={`${t.vsc.editorLabel} Python: ${block.title}`}
+          hintId={hintId}
+          onReady={(api) => {
+            edRef.current = api;
+          }}
+        />
+        <VscPanel
+          tabs={[
+            { id: "terminal", label: t.vsc.terminal },
+            { id: "problems", label: t.vsc.problems, badge: problems.filter((p) => p.kind === "error").length },
+          ]}
+          active={ptab}
+          onTab={setPtab}
+          collapsed={collapsed}
+          onToggle={() => setCollapsed((c) => !c)}
+          toggleLabel={collapsed ? t.vsc.expand : t.vsc.collapse}
+        >
+          {busy && <div className="vsc-loading" aria-hidden style={{ margin: "-6px -14px 6px" }} />}
+          {ptab === "terminal" ? (
+            !ran ? (
+              <div className="vsc-empty">{t.vsc.panelEmpty}</div>
+            ) : (
+              <pre className="vsc-term" tabIndex={0} role="log" aria-live="polite" aria-label="Terminal">
+                {PS}
+                {"python main.py\n"}
+                {busy && phase === "loading" && <span className="dim">{t.vsc.loadingPy + "\n"}</span>}
+                {segs.map((sg, i) => (
+                  <span key={i} className={sg.stream === "err" ? "err" : undefined}>
+                    {sg.text}
+                  </span>
+                ))}
+                {!busy && segs.length > 0 && !segs[segs.length - 1].text.endsWith("\n") ? "\n" : ""}
+                {!busy && PS}
+                {!busy && <span className="vsc-cursor" />}
+              </pre>
+            )
+          ) : problems.length === 0 ? (
+            <div className="vsc-empty">{t.vsc.noProblems}</div>
+          ) : (
+            problems.map((p, i) => <VscProblem key={i} kind={p.kind} text={p.text} src="main.py" />)
+          )}
+        </VscPanel>
+        <VscStatusBar left="Python 3.12 (Pyodide)" ln={pos.ln} col={pos.col} spaces={t.vsc.spaces} lang="Python" />
+      </VscWindow>
       <EditorKeysHint id={hintId} />
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" className="btn btn-primary" disabled={!!busy} onClick={() => void exec("run")}>
-          <IconPlay size={16} /> Запустить
-        </button>
-        <button type="button" className="btn" disabled={!!busy} onClick={() => void exec("check")}>
-          <IconCheck size={16} /> Проверить
-        </button>
-        <button type="button" className="btn btn-ghost" disabled={!!busy} onClick={wantReset}>
-          <IconReset size={16} /> Сбросить
-        </button>
-        {hintsArr.length > 0 && (
-          <button type="button" className="btn btn-ghost" disabled={hints >= hintsArr.length} onClick={() => setHints((h) => h + 1)}>
-            <IconBulb size={16} /> Подсказка {Math.min(hints + 1, hintsArr.length)}/{hintsArr.length}
-          </button>
-        )}
-        <button type="button" className="btn btn-ghost" disabled={showSol} onClick={wantSolution}>
-          <IconEye size={16} /> Показать решение
+        <button type="button" className="btn btn-primary" disabled={!!busy} onClick={() => void exec("check")}>
+          <IconCheck size={16} /> {t.vsc.check}
         </button>
       </div>
 
@@ -228,17 +317,14 @@ export function PythonBlock({ block }: Props) {
           >
             <div role="alertdialog" aria-label="Подтверждение" className="mt-3 flex flex-wrap items-center gap-2 rounded-[10px] border border-line bg-paper p-3 text-[15px]">
               <span className="min-w-0 flex-1 basis-60">
-                {confirm === "reset" ? "Вернуть исходный код? Твои изменения пропадут." : "Точно показать решение? Лучше сначала попробуй подсказки: так запомнится лучше."}
+                {confirm === "reset" ? "Вернуть исходный код? Твои изменения пропадут." : t.vsc.solutionConfirm}
               </span>
               <button
                 type="button"
                 className="btn btn-sm btn-primary"
                 onClick={() => {
                   if (confirm === "reset") doReset();
-                  else {
-                    setShowSol(true);
-                    setConfirm(null);
-                  }
+                  else revealSolution();
                 }}
               >
                 Да
@@ -250,45 +336,6 @@ export function PythonBlock({ block }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {hints > 0 && (
-        <ol className="mt-3 space-y-2" aria-label="Подсказки">
-          {hintsArr.slice(0, hints).map((h, i) => (
-            <li key={i} className="flex gap-2 rounded-[10px] bg-xp/15 px-3 py-2 text-[15px]">
-              <IconBulb size={18} className="mt-0.5 shrink-0" />
-              <span className="min-w-0 [overflow-wrap:anywhere]">{h}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-
-      {busy && (
-        <div className="mt-3" role="status" aria-live="polite">
-          <p className="mb-2 text-[15px] text-muted">
-            {phase === "loading" ? "Загружаем Python… Первый запуск скачивает около 10 МБ, дальше будет мгновенно." : "Выполняется…"}
-          </p>
-          <Shimmer />
-        </div>
-      )}
-
-      {ran && (
-        <div className="mt-3">
-          <div className="eyebrow mb-1">Вывод</div>
-          <pre
-            className="m-0 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded-[10px] border border-white/10 px-3 py-2.5 font-mono text-[14px] leading-[1.55]"
-            style={{ background: "var(--code-bg)", color: "var(--code-ink)" }}
-            tabIndex={0}
-            aria-label="Вывод программы"
-          >
-            {segs.length === 0 && !busy ? <span style={{ opacity: 0.5 }}>(пусто)</span> : null}
-            {segs.map((s, i) => (
-              <span key={i} style={s.stream === "err" ? { color: "var(--bad)" } : undefined}>
-                {s.text}
-              </span>
-            ))}
-          </pre>
-        </div>
-      )}
 
       <div aria-live="polite">
         {verdict.kind === "pass" && (
@@ -341,7 +388,10 @@ export function PythonBlock({ block }: Props) {
               Скрыть
             </button>
           </div>
-          <CodeEditor value={block.solution} lang="python" readOnly ariaLabel="Решение" minLines={3} />
+          <VscWindow>
+            <VscTabBar name="solution.py" kind="python" />
+            <CodeEditor value={block.solution} lang="python" readOnly ariaLabel={`${t.vsc.showSolution}: solution.py`} minLines={3} />
+          </VscWindow>
         </div>
       )}
     </BlockFrame>

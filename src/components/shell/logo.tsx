@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Locale } from "@/content/types";
 
-export function LogoMark({ size = 28 }: { size?: number }) {
+export function LogoMark({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
       <rect width="32" height="32" rx="8" fill="var(--ink)" />
@@ -14,7 +14,7 @@ export function LogoMark({ size = 28 }: { size?: number }) {
 
 export function Logo({ locale, name }: { locale: Locale; name: string }) {
   return (
-    <Link href={`/${locale}`} className="inline-flex min-h-11 items-center gap-2.5 whitespace-nowrap font-display text-[16px] font-bold tracking-tight sm:text-[17px]">
+    <Link href={`/${locale}`} className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap px-1 font-display text-[16px] font-semibold tracking-tight">
       <LogoMark />
       <span>{name}</span>
     </Link>

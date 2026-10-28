@@ -50,8 +50,7 @@ export function MatchBlock({ block }: { block: Extract<Block, { kind: "match" }>
         aria-pressed={isSel}
         onClick={() => (side === "l" ? !m && setSel(isSel ? null : pi) : pickRight(pi))}
         animate={isWrong ? shake : undefined}
-        whileTap={m ? undefined : { scale: 0.98 }}
-        className={`min-h-12 w-full rounded-[10px] border px-3 py-2 text-left text-[15px] leading-snug transition-colors ${isSel ? "border-accent bg-accent/10" : isWrong ? "border-bad bg-bad/10" : "border-line bg-paper"}`}
+                className={`min-h-12 w-full rounded-[12px] border px-3 py-2 text-left text-[16px] leading-snug transition-colors ${isSel ? "border-accent bg-accent/10" : isWrong ? "border-bad bg-bad/10" : "border-transparent bg-paper"}`}
         style={m ? { borderColor: c, background: `color-mix(in srgb, ${c} 14%, var(--card))` } : undefined}
       >
         {side === "l" ? block.pairs[pi].left : block.pairs[pi].right}
@@ -61,7 +60,7 @@ export function MatchBlock({ block }: { block: Extract<Block, { kind: "match" }>
 
   return (
     <BlockFrame label={t.blocks.match} title={block.title} solved={allDone}>
-      <p className="mb-3 text-[14px] text-muted">{t.blocks.matchHint}</p>
+      <p className="mb-4 text-[14px] text-muted">{t.blocks.matchHint}</p>
       <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:gap-x-6">
         <div className="grid content-start gap-2">{leftOrder.map((pi) => cell(pi, "l"))}</div>
         <div className="grid content-start gap-2">{rightOrder.map((pi) => cell(pi, "r"))}</div>

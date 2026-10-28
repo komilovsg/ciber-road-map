@@ -64,7 +64,7 @@ export default function Widget({ props }: { props?: Record<string, unknown> }) {
         {PILLARS.map((p) => (
           <div key={p.k} className="rounded-[14px] border border-line bg-paper p-3">
             <p className="flex items-center gap-2 font-display font-semibold">
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-lc/15 text-sm font-bold text-lc" aria-hidden>{p.k}</span>
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-accent/15 text-sm font-bold text-accent" aria-hidden>{p.k}</span>
               {p.name}
             </p>
             <p className="mt-1 text-[13px] leading-snug text-muted">{p.def}</p>

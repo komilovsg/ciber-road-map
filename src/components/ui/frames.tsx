@@ -1,7 +1,8 @@
 "use client";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { IconCheck } from "@/icons";
+import { useT } from "@/i18n/context";
 
 /** Shared frame for interactive blocks and widgets. */
 export function BlockFrame({
@@ -11,7 +12,7 @@ export function BlockFrame({
   actions,
   children,
   className = "",
-  bodyClassName = "p-4 sm:p-5",
+  bodyClassName = "p-4 sm:p-6",
 }: {
   label: string;
   title?: string;
@@ -21,37 +22,21 @@ export function BlockFrame({
   className?: string;
   bodyClassName?: string;
 }) {
+  const t = useT();
   return (
-    <section
-      aria-label={title ? `${label}: ${title}` : label}
-      className={`card relative my-8 overflow-hidden ${className}`}
-      style={{ maxWidth: 860 }}
-    >
-      <div
-        aria-hidden
-        className="absolute inset-y-0 left-0 w-1"
-        style={{ background: solved ? "var(--ok)" : "var(--line-color)", opacity: solved ? 1 : 0.55 }}
-      />
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line py-3 pl-5 pr-4 sm:pr-5">
-        <span className="eyebrow">{label}</span>
-        {title && <h3 className="font-display text-[17px] font-semibold leading-snug">{title}</h3>}
+    <section aria-label={title ? `${label}: ${title}` : label} className={`card my-10 ${className}`}>
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 pt-4 sm:px-6 sm:pt-5">
+        <h3 className="font-display text-[19px] font-normal leading-snug">{title ?? label}</h3>
         <div className="ml-auto flex items-center gap-2">
           {actions}
-          <AnimatePresence>
-            {solved && (
-              <motion.span
-                initial={{ opacity: 0, scale: 0.6 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "spring", stiffness: 500, damping: 18 }}
-                className="inline-flex items-center gap-1 rounded-full bg-ok/15 px-2.5 py-1 text-xs font-semibold text-ok"
-              >
-                <IconCheck size={14} /> Пройдено
-              </motion.span>
-            )}
-          </AnimatePresence>
+          {solved && (
+            <span className="inline-flex items-center gap-1 text-[14px] text-muted">
+              <IconCheck size={16} className="text-ok" /> {t.common.done}
+            </span>
+          )}
         </div>
       </header>
-      <div className={`${bodyClassName} pl-5 sm:pl-6`}>{children}</div>
+      <div className={bodyClassName}>{children}</div>
     </section>
   );
 }
@@ -72,7 +57,7 @@ export function WidgetFrame({
 }) {
   return (
     <BlockFrame label="Интерактив" title={title} solved={solved} actions={actions}>
-      {hint && <p className="mb-4 text-[15px] text-muted">{hint}</p>}
+      {hint && <p className="mb-4 text-[14px] text-muted">{hint}</p>}
       {children}
     </BlockFrame>
   );

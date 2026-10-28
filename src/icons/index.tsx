@@ -80,3 +80,18 @@ export function StationShape({
     </svg>
   );
 }
+
+export const IconPlayOutline = mk(<path d="M7 4.5v15l12.5-7.5z" />);
+export const IconEllipsis = mk(<path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth={3.2} />);
+export const IconChevronUp = mk(<path d="M6 15l6-6 6 6" />);
+export const IconDatabase = mk(<><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" /></>);
+export const IconErrorCircle = mk(<><circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" /></>);
+/** Two-tone Python mark (VS Code file icon style). */
+export function IconPython({ size = 16, ...p }: P) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable={false} {...p}>
+      <path fill="#3C78AA" d="M11.9 2C7.5 2 7.8 3.9 7.8 3.9v2h4.2v.6H6S3 6.2 3 11s2.6 4.6 2.6 4.6h1.6v-2.2s-.1-2.600 2.600-2.600h4.400s2.500 0 2.500-2.400V4.500S17.100 2 11.900 2zM9.400 3.500a.8.8 0 110 1.600.8.8 0 010-1.600z" />
+      <path fill="#FFDC50" d="M12.100 22c4.400 0 4.100-1.900 4.100-1.900v-2H12v-.6h6s3 .3 3-4.500-2.600-4.600-2.600-4.600h-1.600v2.200s.1 2.600-2.600 2.600H9.800s-2.500 0-2.500 2.400v3.900S6.900 22 12.100 22zm2.500-1.500a.8.8 0 110-1.600.8.8 0 010 1.600z" />
+    </svg>
+  );
+}

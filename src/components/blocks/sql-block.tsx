@@ -6,9 +6,11 @@ import { motion } from "motion/react";
 import type { Database, SqlJsStatic } from "sql.js";
 import type { Block } from "@/content/types";
 import { BlockFrame, DrawCheck, shake } from "@/components/ui/frames";
-import { IconBulb, IconCheck, IconChevronDown, IconPlay, IconRefresh, IconWarn } from "@/icons";
+import { IconBulb, IconCheck, IconChevronDown, IconRefresh, IconWarn } from "@/icons";
+import { useT } from "@/i18n/context";
+import { RunIcon, TouchIndent, VscIconButton, VscMenu, VscPanel, VscProblem, VscStatusBar, VscTabBar, VscWindow } from "@/components/vscode/chrome";
 import { useBlockProgress } from "@/components/blocks/block-context";
-import { CodeEditor, EditorKeysHint } from "@/components/blocks/code-editor";
+import { CodeEditor, EditorKeysHint, type EditorApi } from "@/components/blocks/code-editor";
 import {
   compareResults,
   hasOrderBy,
@@ -34,28 +36,26 @@ function Md({ text }: { text: string }) {
   );
 }
 
-function ResultTable({ res }: { res: QueryResult }) {
-  if (res.columns.length === 0) return <p className="text-[15px] text-muted">Запрос выполнен, строк для показа нет.</p>;
+function ResultTable({ res, rowsLabel }: { res: QueryResult; rowsLabel: string }) {
+  if (res.columns.length === 0) return <p className="vsc-empty" style={{ margin: 0 }}>Запрос выполнен, строк для показа нет.</p>;
   const rows = res.rows.slice(0, MAX_ROWS);
   return (
-    <div>
-      <div className="max-h-72 overflow-auto rounded-[10px] border border-line" tabIndex={0} aria-label="Результат запроса">
-        <table className="min-w-full border-collapse font-mono text-[13px]">
+    <div className="vsc">
+      <div className="max-h-72 overflow-auto" tabIndex={0} role="region" aria-label="Результат запроса">
+        <table className="vsc-grid">
           <thead>
             <tr>
               {res.columns.map((c, i) => (
-                <th key={i} className="sticky top-0 whitespace-nowrap border-b border-line bg-card px-3 py-2 text-left font-semibold">
-                  {c}
-                </th>
+                <th key={i}>{c}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={i} className="odd:bg-ink/[0.03]">
+              <tr key={i}>
                 {r.map((v, j) => (
-                  <td key={j} className="whitespace-nowrap border-b border-line px-3 py-1.5">
-                    {v === null ? <span className="italic text-muted/70">NULL</span> : String(v)}
+                  <td key={j} className={typeof v === "number" ? "num" : undefined}>
+                    {v === null ? <span className="null">NULL</span> : String(v)}
                   </td>
                 ))}
               </tr>
@@ -63,8 +63,8 @@ function ResultTable({ res }: { res: QueryResult }) {
           </tbody>
         </table>
       </div>
-      <p className="mt-1 text-xs text-muted">
-        Строк: {res.rows.length}
+      <p className="vsc-gridnote" style={{ padding: "0 10px 6px" }}>
+        {rowsLabel}: {res.rows.length}
         {res.rows.length > MAX_ROWS && ` (показаны первые ${MAX_ROWS})`}
       </p>
     </div>
@@ -86,12 +86,15 @@ export function SqlBlock({ block }: Props) {
   const [result, setResult] = useState<QueryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [verdict, setVerdict] = useState<Verdict>({ kind: "none" });
-  const [hints, setHints] = useState<number[]>([]);
   const [shakeKey, setShakeKey] = useState(0);
   const sqlRef = useRef<SqlJsStatic | null>(null);
   const dbRef = useRef<Database | null>(null);
   const lastRun = useRef<{ sql: string; res: QueryResult } | null>(null);
-  const edRef = useRef<HTMLTextAreaElement | null>(null);
+  const edRef = useRef<EditorApi | null>(null);
+  const t = useT();
+  const [pos, setPos] = useState({ ln: 1, col: 1 });
+  const [ptab, setPtab] = useState("result");
+  const [collapsed, setCollapsed] = useState(false);
   const hintId = useId();
   const listId = useId();
 
@@ -137,14 +140,17 @@ export function SqlBlock({ block }: Props) {
   const run = () => {
     if (status !== "ready" || !sql.trim()) return;
     setVerdict({ kind: "none" });
+    setCollapsed(false);
     try {
       const res = execute(sql);
       lastRun.current = { sql, res };
       setResult(res);
       setError(null);
+      setPtab("result");
     } catch (e) {
       setError("Ошибка SQL: " + errText(e));
       setResult(null);
+      setPtab("problems");
     }
   };
 
@@ -162,6 +168,8 @@ export function SqlBlock({ block }: Props) {
       setResult(null);
       setVerdict({ kind: "fail", text: "Запрос не выполнился." });
       setShakeKey((k) => k + 1);
+      setCollapsed(false);
+      setPtab("problems");
       return;
     }
     let reason: string | null;
@@ -173,6 +181,8 @@ export function SqlBlock({ block }: Props) {
     if (reason) {
       setVerdict({ kind: "fail", text: "Не совпадает: " + reason });
       setShakeKey((k) => k + 1);
+      setCollapsed(false);
+      setPtab("problems");
       return;
     }
     setVerdict({ kind: "pass" });
@@ -193,6 +203,7 @@ export function SqlBlock({ block }: Props) {
       setError(null);
       setVerdict({ kind: "none" });
       edRef.current?.focus();
+      setPtab("result");
     }, 700);
   };
 
@@ -219,6 +230,19 @@ export function SqlBlock({ block }: Props) {
 
   const task = block.tasks[cur];
   const allDone = done.length >= total;
+  const rowsLabel = t.vsc.rows;
+  const hintLines = (task?.hint ? `${t.vsc.hintWord}: ${task.hint}` : "").split(/\s+/).reduce<string[]>((acc, w) => {
+    const last = acc[acc.length - 1];
+    if (last !== undefined && last.length + 1 + w.length <= 72) acc[acc.length - 1] = last + " " + w;
+    else acc.push(w);
+    return acc;
+  }, []);
+  const hintShown = !!task?.hint && sql.includes(hintLines[0] ?? "\0");
+  const insertHint = () => {
+    if (!task?.hint || hintShown) return;
+    edRef.current?.insertHint(hintLines.map((l) => "-- " + l).join("\n") + "\n", 0);
+  };
+  const problems: string[] = [error, verdict.kind === "fail" ? verdict.text : null].filter((x): x is string => !!x);
 
   return (
     <BlockFrame
@@ -275,7 +299,7 @@ export function SqlBlock({ block }: Props) {
                 </ul>
                 {preview?.table === t.name && (
                   <div className="mt-2">
-                    <ResultTable res={preview.res} />
+                    <ResultTable res={preview.res} rowsLabel={rowsLabel} />
                   </div>
                 )}
               </div>
@@ -304,56 +328,72 @@ export function SqlBlock({ block }: Props) {
                   <Md text={t.prompt} />
                 </span>
               </button>
-              {active && t.hint && (
-                <div className="ml-9 mt-1.5">
-                  {hints.includes(i) ? (
-                    <p className="flex gap-2 rounded-[10px] bg-xp/15 px-3 py-2 text-[15px]">
-                      <IconBulb size={18} className="mt-0.5 shrink-0" />
-                      <span className="min-w-0 [overflow-wrap:anywhere]">{t.hint}</span>
-                    </p>
-                  ) : (
-                    <button type="button" className="btn btn-sm btn-ghost" onClick={() => setHints((h) => [...h, i])}>
-                      <IconBulb size={16} /> Подсказка
-                    </button>
-                  )}
-                </div>
-              )}
             </li>
           );
         })}
       </ol>
 
-      <CodeEditor
-        value={sql}
-        onChange={setSql}
-        lang="sql"
-        onRun={run}
-        ariaLabel={`SQL-запрос, задание ${cur + 1}`}
-        textareaRef={edRef}
-        hintId={hintId}
-        minLines={4}
-      />
+      <VscWindow>
+        <VscTabBar name="query.sql" kind="sql">
+          <VscIconButton label={t.vsc.runSql} run disabled={status !== "ready" || !sql.trim()} onClick={run}>
+            <RunIcon />
+          </VscIconButton>
+          {task?.hint && (
+            <VscIconButton label={hintShown ? t.vsc.allHints : t.vsc.hint} disabled={hintShown} onClick={insertHint}>
+              <IconBulb size={17} />
+            </VscIconButton>
+          )}
+          <TouchIndent api={edRef} />
+          <VscMenu label={t.vsc.more} items={[{ label: t.vsc.resetDb, onSelect: resetDb, disabled: status !== "ready" }]} />
+        </VscTabBar>
+        <CodeEditor
+          value={sql}
+          onChange={setSql}
+          onCursor={(ln, col) => setPos({ ln, col })}
+          lang="sql"
+          onRun={run}
+          ariaLabel={`${t.vsc.editorLabel} SQL, ${cur + 1}`}
+          onReady={(api) => {
+            edRef.current = api;
+          }}
+          hintId={hintId}
+          minLines={4}
+        />
+        <VscPanel
+          tabs={[
+            { id: "result", label: t.vsc.result },
+            { id: "problems", label: t.vsc.problems, badge: problems.length },
+          ]}
+          active={ptab}
+          onTab={setPtab}
+          collapsed={collapsed}
+          onToggle={() => setCollapsed((c) => !c)}
+          toggleLabel={collapsed ? t.vsc.expand : t.vsc.collapse}
+          height={190}
+        >
+          {ptab === "result" ? (
+            result ? (
+              <ResultTable res={result} rowsLabel={t.vsc.rows} />
+            ) : (
+              <div className="vsc-empty">{t.vsc.resultEmpty}</div>
+            )
+          ) : problems.length === 0 ? (
+            <div className="vsc-empty">{t.vsc.noProblems}</div>
+          ) : (
+            problems.map((p, i) => <VscProblem key={i} text={p} src="query.sql" />)
+          )}
+        </VscPanel>
+        <VscStatusBar left="SQLite (sql.js)" ln={pos.ln} col={pos.col} spaces={t.vsc.spaces} lang="SQL" />
+      </VscWindow>
       <EditorKeysHint id={hintId} />
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" className="btn btn-primary" disabled={status !== "ready" || !sql.trim()} onClick={run}>
-          <IconPlay size={16} /> Выполнить
-        </button>
-        <button type="button" className="btn" disabled={status !== "ready" || !sql.trim() || !task} onClick={check}>
-          <IconCheck size={16} /> Проверить
-        </button>
-        <button type="button" className="btn btn-ghost" disabled={status !== "ready"} onClick={resetDb}>
-          <IconRefresh size={16} /> Сбросить базу
+        <button type="button" className="btn btn-primary" disabled={status !== "ready" || !sql.trim() || !task} onClick={check}>
+          <IconCheck size={16} /> {t.vsc.check}
         </button>
       </div>
 
       <div aria-live="polite">
-        {error && (
-          <p className="mt-3 flex items-start gap-2 rounded-[10px] bg-bad/10 px-3 py-2.5 font-mono text-[13px] text-bad [overflow-wrap:anywhere]">
-            <IconWarn size={18} className="mt-0.5 shrink-0" />
-            {error}
-          </p>
-        )}
         {verdict.kind === "pass" && (
           <motion.div
             initial={{ scale: 0.92, opacity: 0 }}
@@ -372,12 +412,6 @@ export function SqlBlock({ block }: Props) {
         )}
       </div>
 
-      {result && (
-        <div className="mt-3">
-          <div className="eyebrow mb-1">Результат</div>
-          <ResultTable res={result} />
-        </div>
-      )}
     </BlockFrame>
   );
 }

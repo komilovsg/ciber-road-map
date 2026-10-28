@@ -101,7 +101,7 @@ export default function Widget({ props }: { props?: Record<string, unknown> }) {
               <span className="w-[8.5rem] shrink-0 font-mono text-[12.5px] sm:w-36">{addr}</span>
               <span className="relative h-3 min-w-0 flex-1 overflow-hidden rounded-full bg-line/60">
                 <motion.span
-                  className="absolute inset-y-0 left-0 rounded-full bg-lc"
+                  className="absolute inset-y-0 left-0 rounded-full bg-accent"
                   initial={{ width: 0 }}
                   animate={{ width: `${(n / max) * 100}%` }}
                   transition={{ duration: 0.7, ease: "easeOut" }}

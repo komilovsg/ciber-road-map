@@ -17,14 +17,13 @@ export function Callout({ tone, title, md, blockIndex }: { tone: "info" | "tip" 
   const heading = tone === "legal" ? t.blocks.callout.legal : (title ?? t.blocks.callout[tone]);
   return (
     <aside
-      className="my-6 max-w-[68ch] rounded-[14px] border p-4 sm:p-5"
-      style={{ borderColor: `color-mix(in srgb, ${x.c} 35%, var(--line))`, background: `color-mix(in srgb, ${x.c} ${tone === "legal" ? 9 : 7}%, var(--card))` }}
+      className="my-8 border-l-2 border-line py-1 pl-4"
     >
-      <p className="flex items-center gap-2 font-display text-[16px] font-semibold" style={{ color: x.c }}>
-        {x.icon}
+      <p className="flex items-center gap-2 font-display text-[17px] font-normal">
+        <span style={{ color: x.c }}>{x.icon}</span>
         {heading}
       </p>
-      {tone === "legal" && title && <p className="mt-1 text-[15px] font-medium">{title}</p>}
+      {tone === "legal" && title && <p className="mt-1 text-[17px] font-medium">{title}</p>}
       <div className="mt-2">
         <Md md={md} blockIndex={blockIndex} compact />
       </div>

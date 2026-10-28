@@ -42,7 +42,7 @@ export function SortBlock({ block }: { block: Extract<Block, { kind: "sort" }> }
           setChecked(false);
         } else setSel(sel === i ? null : i);
       }}
-      className={`inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-left text-[15px] ${sel === i ? "border-accent bg-accent/15" : state === "ok" ? "border-ok bg-ok/10" : state === "bad" ? "border-bad bg-bad/10" : "border-line bg-card"}`}
+      className={`inline-flex min-h-11 items-center gap-1.5 rounded-[12px] border px-3 py-1.5 text-left text-[16px] ${sel === i ? "border-accent bg-accent/15" : state === "ok" ? "border-ok bg-ok/10" : state === "bad" ? "border-bad bg-bad/10" : "border-transparent bg-ink/[0.07]"}`}
     >
       {state === "ok" && <IconCheck size={15} className="text-ok" />}
       {state === "bad" && <IconX size={15} className="text-bad" />}
@@ -54,7 +54,7 @@ export function SortBlock({ block }: { block: Extract<Block, { kind: "sort" }> }
     <BlockFrame label={t.blocks.sort} title={block.title} solved={solved || (checked && allRight)}>
       <p className="mb-3 text-[14px] text-muted">{t.blocks.sortHint}</p>
       {!showSolved && (
-        <div className="mb-4 flex min-h-12 flex-wrap gap-2 rounded-[10px] bg-paper p-2" aria-label="items">
+        <div className="mb-4 flex min-h-12 flex-wrap gap-2 rounded-[12px] p-2" aria-label="items">
           {pool.map((i) => chip(i, "idle"))}
         </div>
       )}
@@ -68,7 +68,7 @@ export function SortBlock({ block }: { block: Extract<Block, { kind: "sort" }> }
               disabled={sel === null}
               onClick={() => place(bi)}
               aria-label={b}
-              className={`flex min-h-24 flex-col items-stretch rounded-[12px] border-2 border-dashed p-2.5 text-left transition-colors disabled:cursor-default ${sel !== null ? "border-accent bg-accent/5" : "border-line"}`}
+              className={`flex min-h-24 flex-col items-stretch rounded-[12px] border p-2.5 text-left transition-colors disabled:cursor-default ${sel !== null ? "border-accent bg-accent/5" : "border-transparent bg-paper"}`}
             >
               <span className="mb-2 font-display text-[15px] font-semibold">{b}</span>
               <span className="flex flex-wrap gap-2">

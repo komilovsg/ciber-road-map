@@ -12,7 +12,7 @@ export function ReadingProgress() {
       aria-label={t.lesson.progressBar}
       aria-valuemin={0}
       aria-valuemax={100}
-      className="absolute inset-x-0 bottom-[-1px] h-[3px] origin-left bg-lc"
+      className="absolute inset-x-0 bottom-0 h-[2px] origin-left bg-lc"
       style={{ scaleX }}
     />
   );

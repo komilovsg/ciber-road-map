@@ -50,7 +50,7 @@ export function FlashcardsBlock({ block, index }: { block: Extract<Block, { kind
         }}
       >
         <div className="mb-2 flex items-center justify-between text-[14px] text-muted">
-          <span className="font-mono">{fmt(t.blocks.cardOf, { n: i + 1, m: n })}</span>
+          <span className="tabular-nums">{fmt(t.blocks.cardOf, { n: i + 1, m: n })}</span>
           <span>{fmt(t.blocks.known, { n: known.length })}</span>
         </div>
         <div style={{ perspective: 1200 }}>
@@ -79,11 +79,11 @@ export function FlashcardsBlock({ block, index }: { block: Extract<Block, { kind
                 className="relative block min-h-[200px] w-full cursor-pointer"
                 style={{ transformStyle: "preserve-3d" }}
               >
-                <span className="absolute inset-0 grid place-items-center rounded-[14px] border border-line bg-paper p-6 text-center font-display text-[22px] font-semibold leading-snug" style={{ backfaceVisibility: "hidden" }}>
+                <span className="absolute inset-0 grid place-items-center rounded-[12px] bg-paper p-6 text-center font-display text-[22px] font-medium leading-snug" style={{ backfaceVisibility: "hidden" }}>
                   <span>{card.front}</span>
-                  <span className="absolute bottom-3 text-[12px] font-normal text-muted">{t.blocks.flip}</span>
+                  <span className="absolute bottom-3 text-[14px] font-normal text-muted">{t.blocks.flip}</span>
                 </span>
-                <span className="absolute inset-0 grid place-items-center overflow-auto rounded-[14px] border p-6 text-center text-[17px] leading-relaxed" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", borderColor: "var(--line-color)", background: "color-mix(in srgb, var(--line-color) 8%, var(--card))" }}>
+                <span className="absolute inset-0 grid place-items-center overflow-auto rounded-[12px] bg-paper p-6 text-center text-[17px] leading-relaxed" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
                   <span className="[&_.prose-kr]:max-w-none"><Md md={card.back} blockIndex={index} compact /></span>
                 </span>
               </motion.button>
@@ -91,10 +91,10 @@ export function FlashcardsBlock({ block, index }: { block: Extract<Block, { kind
           </AnimatePresence>
         </div>
         <div className="mt-4 grid grid-cols-[44px_1fr_1fr_44px] items-center gap-2">
-          <button type="button" className="btn btn-sm !px-0" aria-label={t.blocks.prevCard} onClick={() => go(-1)}><IconArrowLeft size={18} /></button>
-          <button type="button" className="btn btn-sm" onClick={() => mark(false)}><IconRefresh size={16} />{t.blocks.repeat}</button>
+          <button type="button" className="btn btn-ghost btn-sm !px-0" aria-label={t.blocks.prevCard} onClick={() => go(-1)}><IconArrowLeft size={18} /></button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => mark(false)}><IconRefresh size={16} />{t.blocks.repeat}</button>
           <button type="button" className={`btn btn-sm ${known.includes(i) ? "btn-ok" : ""}`} onClick={() => mark(true)}><IconCheck size={16} />{t.blocks.know}</button>
-          <button type="button" className="btn btn-sm !px-0" aria-label={t.blocks.nextCard} onClick={() => go(1)}><IconArrowRight size={18} /></button>
+          <button type="button" className="btn btn-ghost btn-sm !px-0" aria-label={t.blocks.nextCard} onClick={() => go(1)}><IconArrowRight size={18} /></button>
         </div>
       </div>
     </BlockFrame>

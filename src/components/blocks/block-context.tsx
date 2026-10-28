@@ -14,7 +14,7 @@ export function useBlockProgress<T = unknown>() {
   const key = useContext(BlockKeyContext);
   const p = useProgress();
   const rec = (p.blocks[key] ?? {}) as BlockRecord;
-  const solve = useCallback(() => solveBlock(key), [key]);
+  const solve = useCallback((xp?: number) => solveBlock(key, typeof xp === "number" ? xp : undefined), [key]);
   const setData = useCallback((v: T) => saveBlockData(key, v), [key]);
   return { key, solved: !!rec.solved, data: rec.data as T | undefined, solve, setData };
 }

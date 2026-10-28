@@ -113,16 +113,16 @@ export function getBlock(key: string): unknown {
 export type BlockRecord = { solved?: boolean; data?: unknown };
 
 /** Mark an interactive block as solved (once). Awards XP the first time. */
-export function solveBlock(key: string) {
+export function solveBlock(key: string, xp: number = XP_BLOCK) {
   ensureLoaded();
   const rec = (state.blocks[key] ?? {}) as BlockRecord;
   if (rec.solved) return;
   commit({
     ...state,
-    xp: state.xp + XP_BLOCK,
+    xp: state.xp + xp,
     blocks: { ...state.blocks, [key]: { ...rec, solved: true } },
   });
-  emitXp(XP_BLOCK);
+  emitXp(xp);
 }
 
 export function saveBlockData(key: string, data: unknown) {
