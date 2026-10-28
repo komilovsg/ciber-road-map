@@ -26,7 +26,7 @@ export function CourseNav({ weeks, currentSlug, onNavigate }: { weeks: WeekMeta[
                 <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: w.color }} />
                 <span className="min-w-0 flex-1 leading-tight">
                   <span className="block text-[14px] text-muted">{fmt(t.map.weekOf, { n: w.week })}</span>
-                  <span className="block truncate">{w.module}</span>
+                  <span className="block [overflow-wrap:anywhere]">{w.module}</span>
                 </span>
                 <span className="text-[14px] tabular-nums text-muted">{done}/{w.lessons.length || 6}</span>
                 <IconChevronDown size={16} className={`shrink-0 text-muted ${isOpen ? "rotate-180" : ""}`} />
@@ -44,7 +44,7 @@ export function CourseNav({ weeks, currentSlug, onNavigate }: { weeks: WeekMeta[
                           className={`flex min-h-11 items-center gap-3 rounded-[12px] py-1.5 pl-5 pr-3 text-[16px] leading-snug ${cur ? "bg-ink/[0.07] font-medium" : "hover:bg-ink/5"}`}
                         >
                           <StationShape type={l.type} size={18} filled={!!p.done[l.slug]} color="var(--muted)" className="shrink-0" />
-                          <span className="min-w-0 flex-1">{l.title}</span>
+                          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{l.title}</span>
                         </Link>
                       </li>
                     );
